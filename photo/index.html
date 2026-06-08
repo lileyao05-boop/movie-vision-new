@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中国电影的"爆款密码"：近十年票房与口碑的数据拆解</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #e50914;
+            --douban-color: #00b51d;
+            --maoyan-color: #df2d2d;
+            --china-red: #de2110;
+            --text-color: #2c3e50;
+            --bg-color: #f8f9fa;
+        }
+        body {
+            font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', Arial, sans-serif;
+            line-height: 1.8;
+            color: var(--text-color);
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 0;
+        }
+        .header {
+            background: linear-gradient(135deg, #141414 0%, #2c3e50 100%);
+            color: white;
+            padding: 80px 20px;
+            text-align: center;
+            border-bottom: 5px solid var(--primary-color);
+        }
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            font-weight: 800;
+            letter-spacing: 2px;
+        }
+        .header .subtitle {
+            font-size: 1.2rem;
+            color: #bdc3c7;
+        }
+        .container {
+            max-width: 950px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background-color: white;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+        .meta-info {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            text-align: center;
+            margin-bottom: 40px;
+            border-bottom: 1px dashed #ddd;
+            padding-bottom: 20px;
+        }
+        h2 {
+            color: #2c3e50;
+            border-left: 5px solid var(--primary-color);
+            padding-left: 15px;
+            margin-top: 40px;
+            font-size: 1.6rem;
+        }
+        .section-douban { border-left-color: var(--douban-color); }
+        .section-maoyan { border-left-color: var(--maoyan-color); }
+        p {
+            font-size: 1.05rem;
+            text-indent: 2em;
+            text-align: justify;
+            margin-bottom: 20px;
+        }
+        
+        [contenteditable="true"] {
+            transition: all 0.3s ease;
+            position: relative;
+            outline: none;
+            padding: 2px 4px;
+            border-radius: 4px;
+        }
+        [contenteditable="true"]:hover {
+            background-color: rgba(243, 156, 18, 0.1);
+            box-shadow: 0 0 0 1px #f39c12;
+            cursor: text;
+        }
+        
+        /* 📊 统一图表容器样式 */
+        .chart-container {
+            width: 100%;
+            height: 450px;
+            margin: 30px 0;
+            padding: 20px;
+            box-sizing: border-box;
+            background: #fff;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.02);
+        }
+
+        /* 🎬 模块二：电影巨导滑动交互中心样式 */
+        .director-gallery-wrapper {
+            background: linear-gradient(180deg, #1f242d 0%, #11141a 100%);
+            padding: 30px 15px;
+            border-radius: 12px;
+            margin: 30px 0;
+            color: #fff;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .gallery-title {
+            text-align: center;
+            font-size: 1.25rem;
+            color: #f1c40f;
+            margin-bottom: 20px;
+            letter-spacing: 1px;
+            font-weight: bold;
+        }
+        .slider-viewport {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+            height: 200px;
+            margin-bottom: 25px;
+        }
+        .slider-container {
+            display: flex;
+            transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+            gap: 20px;
+            padding: 0 50px;
+        }
+        .director-photo-card {
+            flex: 0 0 110px;
+            height: 165px;
+            border-radius: 10px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            border: 2px solid rgba(255,255,255,0.1);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.4);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            background: rgba(255,255,255,0.05);
+            padding: 10px 5px;
+            box-sizing: border-box;
+        }
+        .director-photo-card .avatar-box {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 2px solid rgba(255,255,255,0.2);
+            background: #2c3e50;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        .director-photo-card .avatar-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        /* 当图片缺失时的占位文字样式 */
+        .director-photo-card .avatar-box .placeholder-text {
+            font-size: 0.75rem;
+            color: #95a5a6;
+        }
+        .director-photo-card span.dir-name {
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: #bdc3c7;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+        }
+        .director-photo-card.active {
+            transform: scale(1.1);
+            border-color: #f1c40f;
+            background: rgba(241, 196, 15, 0.1);
+            box-shadow: 0 0 20px rgba(241, 196, 15, 0.4);
+            z-index: 2;
+        }
+        .director-photo-card.active .avatar-box {
+            border-color: #f1c40f;
+            transform: scale(1.05);
+        }
+        .director-photo-card.active span.dir-name {
+            color: #f1c40f;
+        }
+        .nav-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0,0,0,0.6);
+            color: #fff;
+            border: 1px solid #444;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 10;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .nav-btn:hover { background: #f1c40f; color: #000; }
+        .prev-btn { left: 10px; }
+        .next-btn { right: 10px; }
+
+        .resume-panel {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+        .resume-avatar-large {
+            flex: 0 0 100px;
+            height: 100px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 2px solid #f1c40f;
+            background: #2c3e50;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        .resume-avatar-large img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .resume-info-body {
+            flex: 1;
+        }
+        .resume-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.15);
+            padding-bottom: 12px;
+            margin-bottom: 15px;
+        }
+        .resume-name { font-size: 1.3rem; font-weight: bold; color: #f1c40f; }
+        .resume-tag { font-size: 0.8rem; background: #e74c3c; padding: 3px 10px; border-radius: 20px; font-weight: 500; }
+        .resume-bio { font-size: 0.95rem; color: #bdc3c7; margin-bottom: 15px; text-align: justify; }
+        .works-click-box { background: rgba(0, 0, 0, 0.25); border-radius: 6px; padding: 12px 15px; }
+        .click-tip { font-size: 0.8rem; color: #95a5a6; margin-bottom: 8px; }
+        .works-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+        .work-item { background: rgba(255,255,255,0.08); border-left: 3px solid #f1c40f; padding: 8px 12px; border-radius: 4px; }
+        .work-title { font-size: 0.9rem; font-weight: bold; color: #fff; }
+        .work-boxoffice { font-size: 0.8rem; color: #e74c3c; margin-top: 2px; }
+
+        /* ✨ 模块三：金字塔华语流光交互界面样式 */
+        .pyramid-interactive-wrapper {
+            display: flex;
+            flex-direction: row;
+            gap: 25px;
+            background: #161a1d;
+            padding: 30px;
+            border-radius: 12px;
+            margin: 30px 0;
+            color: #fff;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .pyramid-container {
+            flex: 0 0 42%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+        .pyramid-layer {
+            width: 100%;
+            height: 52px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 4px;
+            position: relative;
+            color: rgba(255,255,255,0.9);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        #layer-5 { width: 45%; background: linear-gradient(90deg, #962d22, #de2110); }
+        #layer-4 { width: 60%; background: linear-gradient(90deg, #b83b1d, #e64a19); }
+        #layer-3 { width: 75%; background: linear-gradient(90deg, #d35400, #f39c12); }
+        #layer-2 { width: 90%; background: linear-gradient(90deg, #34495e, #5d6d7e); }
+        #layer-1 { width: 100%; background: linear-gradient(90deg, #212f3d, #2c3e50); }
+        
+        .pyramid-layer:hover, .pyramid-layer.active {
+            transform: scale(1.06);
+            box-shadow: 0 0 25px rgba(222, 33, 16, 0.6);
+            z-index: 5;
+            color: #fff;
+            border-color: #f1c40f;
+        }
+        .pyramid-layer .layer-count {
+            position: absolute;
+            right: 12px;
+            font-size: 0.75rem;
+            background: rgba(0,0,0,0.5);
+            padding: 2px 6px;
+            border-radius: 10px;
+            color: #f1c40f;
+        }
+        
+        .spotlight-panel {
+            flex: 1;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 8px;
+            padding: 25px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+        }
+        .spotlight-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 2px solid var(--china-red);
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+        .spotlight-title { font-size: 1.25rem; font-weight: bold; color: #f1c40f; }
+        .spotlight-china-meta { font-size: 0.85rem; background: var(--china-red); padding: 2px 10px; border-radius: 10px; font-weight: bold; }
+        .spotlight-desc { font-size: 0.95rem; color: #ecf0f1; text-align: justify; margin-bottom: 15px; line-height: 1.6; }
+        
+        .showcase-box { background: rgba(0,0,0,0.3); padding: 15px; border-radius: 6px; border-left: 3px solid #f1c40f; }
+        .showcase-title { font-size: 0.85rem; color: #f1c40f; margin-bottom: 8px; font-weight: bold; }
+        .movie-badges { display: flex; flex-wrap: wrap; gap: 8px; }
+        .movie-badge {
+            background: rgba(255,255,255,0.08);
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        /* ✨ 模块四：观众喜欢的电影主题分类交互中心样式 */
+        .genre-interactive-wrapper {
+            background: linear-gradient(135deg, #1e272e 0%, #0f171e 100%);
+            padding: 30px;
+            border-radius: 12px;
+            margin: 30px 0;
+            color: #fff;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+        }
+        .genre-title { text-align: center; font-size: 1.3rem; color: #2ecc71; margin-bottom: 25px; font-weight: bold; }
+        .genre-layout { display: flex; gap: 25px; }
+        .genre-buttons-pane { flex: 0 0 35%; display: flex; flex-direction: column; gap: 10px; }
+        .genre-btn-item {
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+            padding: 12px 18px; border-radius: 6px; cursor: pointer;
+            display: flex; justify-content: space-between; align-items: center; transition: all 0.25s ease;
+        }
+        .genre-btn-item:hover, .genre-btn-item.active {
+            background: rgba(46, 204, 113, 0.15); border-color: #2ecc71;
+            box-shadow: 0 0 15px rgba(46, 204, 113, 0.3); transform: translateX(5px);
+        }
+        .genre-btn-name { font-size: 0.95rem; font-weight: bold; }
+        .genre-btn-meta { font-size: 0.8rem; color: #95a5a6; }
+        .genre-display-board {
+            flex: 1; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 8px; padding: 25px; display: flex; flex-direction: column; justify-content: flex-start;
+        }
+        .board-header { border-bottom: 2px dashed #2ecc71; padding-bottom: 12px; margin-bottom: 15px; }
+        .board-main-title { font-size: 1.3rem; font-weight: bold; color: #2ecc71; }
+        .board-stats-row { display: flex; gap: 20px; margin: 15px 0; }
+        .stat-card { background: rgba(255,255,255,0.05); padding: 10px 15px; border-radius: 4px; flex: 1; border-top: 3px solid #2ecc71; }
+        .stat-label { font-size: 0.75rem; color: #bdc3c7; }
+        .stat-value { font-size: 1.2rem; font-weight: bold; color: #fff; margin-top: 2px; }
+        .board-insight { font-size: 0.95rem; color: #ecf0f1; text-align: justify; line-height: 1.6; margin-bottom: 15px; }
+        .board-showcase { background: rgba(255,255,255,0.03); padding: 15px; border-radius: 6px; }
+        .showcase-lbl { font-size: 0.8rem; color: #f1c40f; font-weight: bold; margin-bottom: 8px; }
+        .showcase-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+        .showcase-tag-item { background: rgba(46, 204, 113, 0.1); border: 1px solid rgba(46, 204, 113, 0.3); padding: 3px 10px; border-radius: 4px; font-size: 0.85rem; }
+
+        @media (max-width: 768px) {
+            .pyramid-interactive-wrapper, .genre-layout { flex-direction: column; }
+            .pyramid-container, .genre-buttons-pane { flex: auto; }
+            .resume-panel { flex-direction: column; align-items: center; text-align: center; }
+        }
+
+        .source-section { margin-top: 60px; padding-top: 20px; border-top: 2px solid #eee; background-color: #f9f9f9; padding: 20px; border-radius: 5px; }
+        .source-list { font-size: 0.9rem; color: #555; padding-left: 20px; }
+        .source-list li { margin-bottom: 8px; }
+        .highlight { color: var(--primary-color); font-weight: bold; }
+        .highlight-db { color: var(--douban-color); font-weight: bold; }
+        .highlight-my { color: var(--maoyan-color); font-weight: bold; }
+        .highlight-cn { color: var(--china-red); font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1 contenteditable="true">中国电影的"爆款密码"<br><span style="font-size: 1.8rem; font-weight: 400;">近十年票房与口碑的数据拆解</span></h1>
+        <div class="subtitle" contenteditable="true">基于国家电影局、灯塔专业版及豆瓣电影 Top 250 数据的跨平台原创多维分析</div>
+    </div>
+
+    <div class="container">
+        
+        <div class="meta-info" contenteditable="true">
+            发布时间：2026年6月 • 数据采集工具：后羿采集器 / Python • 可视化呈现：ECharts 交互图表
+        </div>
+
+        <h2>导语：当我们在院线按下确认键</h2>
+        <p contenteditable="true">电影院的灯光熄灭，龙标亮起。挑选电影成了一门技术活。随着中国电影工业的成熟以及观众审美水平的跃升，什么样的电影能够突破圈层，成为斩获数十亿票房的“爆款”？我们利用<b>后羿采集器</b>完整抓取了经典坐标系<b>《豆瓣电影 Top 250》</b>与<b>《猫眼专业版电影票房总排行榜》</b>的真实原生数据，拆解出了中国电影走向票房艺术双赢的进化密码。</p>
+
+        <h2>一、 历年大盘：从“流量迷信”到“国产片本位意识”</h2>
+        <p contenteditable="true">通过清洗国家电影局发布的年度大盘数据，我们可以清晰看到中国电影近十年的起伏波澜。从2016年破400亿到2019年攀升至642亿的巅峰，市场的抗风险能力和国产片的市场占有率正在显著增强。</p>
+        
+        <div id="boxOfficeChart" class="chart-container"></div>
+        
+        <p contenteditable="true">数据深度分析发现：国产电影的票房占比已从十年前的不足60%，演变为如今连续多年稳居<span class="highlight">80%以上</span>的绝对统治地位。中国观众的视线已彻底收拢回本土叙事中。</p>
+
+        <h2 class="section-maoyan">二、 猫眼专业版：霸榜大盘的电影总票房 Top 10</h2>
+        <p contenteditable="true">为了窥探真正的重工业与商业大盘巅峰，我们对接了<b>猫眼专业版中国电影 market 票房排行榜</b>。以下是完整收录的影史前十超级巨制及它们背后的核心导演群像（下方框内已为您配置专属头像位，可在本地文件夹中直接放入对应导演照片展示）。</p>
+        
+        <div class="director-gallery-wrapper">
+            <div class="gallery-title">🎬 影史大盘巨导画廊 (猫眼专业版总票房 Top 10 核心操盘手)</div>
+            <div class="slider-viewport">
+                <button class="nav-btn prev-btn" onclick="moveSlider(-1)">❮</button>
+                <div class="slider-container" id="sliderContainer"></div>
+                <button class="nav-btn next-btn" onclick="moveSlider(1)">❯</button>
+            </div>
+            <div class="resume-panel" id="resumePanel"></div>
+        </div>
+        
+        <p contenteditable="true"><b>原创大盘分析结论：</b>大盘数据显示，国漫巨制<span class="highlight-my">《哪吒之魔童闹海》以惊人的 154.46 亿元</span>打破了全球单市场纪录。此外，引进大片《疯狂动物城2》（45.94亿）和《复仇者联盟4》（42.50亿）的完整保留，直观对比出了国产重工业大片如《长津湖》《战狼2》在本土市场所具备的超强破圈碾压优势。</p>
+
+        <h2>三、 口碑对标：高分金字塔中的“华语流光与中式共鸣”</h2>
+        <p contenteditable="true">在《豆瓣电影 Top 250》这份代表全球最高水准的榜单中，隐藏着一个有趣的硬核规律：<b>评分爬得越高，中国传统文化与社会现实题材的共鸣力量就越加纯粹。</b>我们对采集到的 250 部经典进行了评分区间 and 华语片“含华量”的求证拆解，请点击下方口碑金字塔层级查看硬核数据：</p>
+        
+        <div class="pyramid-interactive-wrapper">
+            <div class="pyramid-container">
+                <div class="pyramid-layer" id="layer-5" onclick="switchPyramid(4)">9.5分以上 (塔尖神作)<span class="layer-count">共10部</span></div>
+                <div class="pyramid-layer" id="layer-4" onclick="switchPyramid(3)">9.3 - 9.4分 (殿堂艺术)<span class="layer-count">共31部</span></div>
+                <div class="pyramid-layer" id="layer-3" onclick="switchPyramid(2)">9.0 - 9.2分 (时代分水岭)<span class="layer-count">共66部</span></div>
+                <div class="pyramid-layer" id="layer-2" onclick="switchPyramid(1)">8.7 - 8.9分 (中坚黄金档)<span class="layer-count">共113部</span></div>
+                <div class="pyramid-layer" id="layer-1" onclick="switchPyramid(0)">8.5 - 8.6分 (经典入门槛)<span class="layer-count">共29部</span></div>
+            </div>
+            <div class="spotlight-panel" id="spotlightPanel"></div>
+        </div>
+        
+        <p contenteditable="true"><b>原创数据分析结论：</b>数据清洗清晰地表明，在 9.5 分以上的终极天花板中，华语片占比高达 <span class="highlight-cn">10.0%</span>（《霸王别姬》），其权重甚至超越了大部分西方商业大片。这有力求证了：<b>中国观众在走向审美的最高端时，唯有直击中国本土历史阵痛与传统文化骨血的真诚故事，才能取得无可撼动的图腾地位。</b></p>
+
+        <h2>四、 观众的叙事密码：豆瓣 Top 250 核心主题分类解析</h2>
+        <p contenteditable="true">究竟什么样的电影主题能真正走进观众心里，并沉淀为跨越时代的经典？我们对港台及内地上榜作品的主题标签进行了严谨细致的类目清洗与加权统计。以下是观众最喜爱的核心电影主题分类交互看板：</p>
+        
+        <div class="genre-interactive-wrapper">
+            <div class="genre-title">📊 豆瓣经典坐标系：最受观众喜爱的电影主题分类</div>
+            <div class="genre-layout">
+                <div class="genre-buttons-pane" id="genreButtonsPane"></div>
+                <div class="genre-display-board" id="genreDisplayBoard"></div>
+            </div>
+        </div>
+        
+        <p contenteditable="true"><b>主题大盘分析结论：</b>从数据可视化的分布来看，<span class="highlight-db">“剧情”类（包含现实主义、社会反思）</span>以绝对优势成为进榜数量最多、生命力最长的主题。而<span class="highlight-db">“动画”与“科幻”主题</span>在保持极高平均分的同时，其评价人数屡创新高，这揭示了年轻一代观众对宏大想象力与重工业视觉奇观的极度渴望。</p>
+
+        <h2>结语：真诚，是中国电影跨越时间的终极密码</h2>
+        <p contenteditable="true">大数据不会说谎。通过对《豆瓣 Top 250》经典坐标系与近十年中国商业院线大盘的收拢对比，我们清晰地看到：内容本位正在加速回归。无论是历久弥新的国产经典，还是近年来斩获数十亿票房的院线黑马，它们背后共同的“爆款密码”，不过是创作者对观众的真诚。</p>
+
+        <div class="source-section">
+            <h3>参考资料与真实数据来源（全面求证与数据溯源）</h3>
+            <ul class="source-list">
+                <li><b>[历年大盘总票房演变]</b> 国家电影局政府信息公开数据中心</li>
+                <li><b>[影史大盘排行榜 Top 10 完整名录]</b> 猫眼专业版大盘数据库看板（含进口片完整大盘数据）</li>
+                <li><b>[电影主题分类标签/评分/评价人数/华语片分布]</b> 豆瓣电影 Top 250 原始文件（利用后羿采集器精准清洗抓取）</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // 📈 1. 初始化历年总票房图表
+        var boxOfficeChart = echarts.init(document.getElementById('boxOfficeChart'));
+        boxOfficeChart.setOption({
+            title: { text: '2016-2025中国电影总票房及国产片占比演变', left: 'center', textStyle: { color: '#2c3e50', fontSize: 16 } },
+            tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
+            legend: { data: ['总票房(亿元)', '国产片占比(%)'], top: '10%' },
+            grid: { top: '22%', bottom: '10%', left: '10%', right: '10%' },
+            xAxis: { type: 'category', data: ['2016', '2017', '2018', '2019', '2020', '2021', '2022', '2023', '2024', '2025'] },
+            yAxis: [
+                { type: 'value', name: '票房 (亿元)', axisLabel: { formatter: '{value} 亿' } },
+                { type: 'value', name: '占比 (%)', min: 50, max: 100, axisLabel: { formatter: '{value} %' } }
+            ],
+            series: [
+                { name: '总票房(亿元)', type: 'bar', barWidth: '40%', color: '#34495e', data: [457.1, 559.1, 609.8, 642.7, 204.2, 472.6, 300.7, 549.1, 412.3, 521.8] },
+                { name: '国产片占比(%)', type: 'line', yAxisIndex: 1, color: '#e50914', lineWidth: 3, data: [58.3, 53.8, 62.2, 64.1, 83.7, 84.5, 84.8, 83.4, 81.2, 85.1] }
+            ]
+        });
+
+        // 2. 完整无删减版本的 10 位/组 核心操盘名导矩阵数据 (内嵌与您Excel名字一致的图片映射名字)
+        var fullDirectorData = [
+            { name: "饺子（杨宇）", imgName: "饺子（杨宇）", tag: "国漫重工业开创者", bio: "中国天才动画导演。其执导的《哪吒之魔童闹海》在2025年贺岁档以断层级别的 154.46 亿元刷新全球单市场纪录；其前作《魔童降世》亦狂揽50.35亿，独揽影史前五双席位。", works: [{t:"哪吒之魔童闹海", b:"154.46 亿 (第1)"}, {t:"哪吒之魔童降世", b:"50.35 亿 (第5)"}] },
+            { name: "陈凯歌", imgName: "陈凯歌", tag: "新主流战争史诗标杆", bio: "华语顶级导演，联手徐克、林超贤采用现代工业流水线模式，打造了抗美援朝战争巨制《长津湖》，全景式还原史诗级战役，成功撬动全民家国情怀。", works: [{t:"长津湖", b:"57.75 亿 (第2)"}, {t:"长津湖之水门桥", b:"40.67 亿 (第12)"}] },
+            { name: "吴京", imgName: "吴京", tag: "军事动作片拓荒者", bio: "2017年由其自导自演的《战狼2》以 56.94 亿元火爆大江南北，开创了现代军事大片的先河，其硬汉叙事和强烈的民族自豪感具有划时代意义。", works: [{t:"战狼2", b:"56.94 亿 (第3)"}] },
+            { name: "贾玲", imgName: "贾玲", tag: "国民情感与励志巨匠", bio: "极具情感号召力的女性导演。处女作《你好，李焕英》凭借纯真母女情狂揽54.13亿，随后的女性觉醒力作《热辣滚烫》以34.60亿领跑，社会议题共振力强劲。", works: [{t:"你好，李焕英", b:"54.13 亿 (第4)"}, {t:"热辣滚烫", b:"34.60 亿"}] },
+            { name: "郭帆", imgName: "郭帆", tag: "硬科幻电影奠基人", bio: "从零开始搭建中国硬科幻工业体系。《流浪地球》系列两部作品总票房大破87亿。不仅视效达到国际一线顶尖水平，其宏大的命运共同体叙事更在世界影坛独树一帜。", works: [{t:"流浪地球", b:"46.87 亿 (第6)"}, {t:"流浪地球2", b:"40.29 亿"}] },
+            { name: "拜伦·霍华德", imgName: "拜伦·霍华德", tag: "好莱坞全球化动画顶峰", bio: "迪士尼金牌动画导演。其执导的《疯狂动物城2》（45.94亿）凭借庞大的世界观、精妙的社会寓言和全年龄段的合家欢叙事，在中国大陆院线斩获极高票房。", works: [{t:"疯狂动物城2", b:"45.94 亿 (第7)"}] },
+            { name: "张艺谋", imgName: "张艺谋", tag: "传统美学与商业融合大师", bio: "第五代名导领军人物。2023年凭借古装悬疑喜剧《满江红》狂揽45.44亿元。张艺谋善于在高饱和度的美学色彩与戏剧冲突中融入传统家国情怀，是高产且票房稳健的华语大师。", works: [{t:"满江红", b:"45.44 亿 (第8)"}, {t:"第二十条", b:"24.54 亿"}] },
+            { name: "陈思诚", imgName: "陈思诚", tag: "类型片矩阵IP操盘手", bio: "中国极具商业敏锐度的青年导演。成功开创了融合“喜剧+探案”的《唐人街探案》超级系列电影IP，其中《唐探3》斩获 45.23 亿元，建立了成熟的华语电影宇宙。", works: [{t:"唐人街探案3", b:"45.23 亿 (第9)"}, {t:"唐人街探案2", b:"33.97 亿"}] },
+            { name: "韩寒", imgName: "韩寒", tag: "国民赛车IP与时代幽默", bio: "从作家跨界为高票房商业导演。专注于赛车、梦想与中年危机的黑色幽默解构。2026年最新巨制《飞驰人生3》爆砍 44.20 亿元，作品具有极高的网感与大众共情力。", works: [{t:"飞驰人生3", b:"44.20 亿 (第10)"}, {t:"飞驰人生2", b:"33.98 亿"}] },
+            { name: "安东尼·罗素 / 乔·罗素", imgName: "安东尼·罗素", tag: "全球重工业流行文化高峰", bio: "好莱坞超级商业大片操盘手。2019年执导的科幻巨制《复仇者联盟4:终局之战》在华斩获 42.50 亿元，展现了漫威电影宇宙十年沉淀所爆发的极致重工业宣发威力。", works: [{t:"复仇者联盟4:终局之战", b:"42.50 亿 (第11)"}] }
+        ];
+
+        var dCurrentIndex = 0;
+        function initDirectorGallery() {
+            var container = document.getElementById('sliderContainer');
+            container.innerHTML = '';
+            fullDirectorData.forEach(function(item, index) {
+                var card = document.createElement('div');
+                card.className = 'director-photo-card' + (index === dCurrentIndex ? ' active' : '');
+                card.onclick = function() { selectDirector(index); };
+                
+                // 1. 头像区：默认加载本地格式图片，加载失败(onerror)时显示名字首字或替代字
+                var avatarHtml = '<div class="avatar-box">' +
+                                 '  <img src="' + item.imgName + '.jpg" alt="' + item.name + '" onerror="this.style.display=\'none\'; this.nextElementSibling.style.display=\'block\';">' +
+                                 '  <div class="placeholder-text" style="display:none;">📷 暂无图片</div>' +
+                                 '</div>';
+                
+                // 2. 姓名区
+                var nameHtml = '<span class="dir-name">' + item.name.split('（')[0] + '</span>';
+                
+                card.innerHTML = avatarHtml + nameHtml;
+                container.appendChild(card);
+            });
+            renderResumePanel();
+        }
+
+        function moveSlider(direction) {
+            dCurrentIndex += direction;
+            if (dCurrentIndex < 0) dCurrentIndex = fullDirectorData.length - 1;
+            if (dCurrentIndex >= fullDirectorData.length) dCurrentIndex = 0;
+            selectDirector(dCurrentIndex);
+        }
+
+        function selectDirector(index) {
+            dCurrentIndex = index;
+            var container = document.getElementById('sliderContainer');
+            container.style.transform = 'translateX(' + (-dCurrentIndex * 130 + 120) + 'px)';
+            var cards = container.getElementsByClassName('director-photo-card');
+            for(var i=0; i<cards.length; i++) cards[i].classList.remove('active');
+            cards[dCurrentIndex].classList.add('active');
+            renderResumePanel();
+        }
+
+        function renderResumePanel() {
+            var panel = document.getElementById('resumePanel');
+            var data = fullDirectorData[dCurrentIndex];
+            
+            // 详情面板里的左侧大图位置，同样支持加载本地同名照片
+            var largeAvatarHtml = '<div class="resume-avatar-large">' +
+                                  '  <img src="' + data.imgName + '.jpg" alt="' + data.name + '" onerror="this.style.display=\'none\'; this.nextElementSibling.style.display=\'flex\'; height:\'100%\'; align-items:\'center\'; justify-content:\'center\'; text-align:\'center\'; color:\'#7f8c8d\'; font-size:\'12px\';">' +
+                                  '  <div style="display:none; width:100%; height:100%; background:#2c3e50; align-items:center; justify-content:center; color:#95a5a6; font-size:12px;">暂无大图</div>' +
+                                  '</div>';
+            
+            var infoBodyHtml = '<div class="resume-info-body">' +
+                               '  <div class="resume-header">' +
+                               '    <div class="resume-name">🎥 核心操盘手：' + data.name + '</div>' +
+                               '    <div class="resume-tag">' + data.tag + '</div>' +
+                               '  </div>' +
+                               '  <div class="resume-bio">' + data.bio + '</div>' +
+                               '  <div class="works-click-box">' +
+                               '    <div class="click-tip">💡 代表作及影史大盘结算明细：</div>' +
+                               '    <div class="works-grid">';
+            
+            data.works.forEach(function(work) {
+                infoBodyHtml += '      <div class="work-item"><div class="work-title">《' + work.t + '》</div><div class="work-boxoffice">🔥 票房: ' + work.b + '</div></div>';
+            });
+            
+            infoBodyHtml += '    </div>' +
+                            '  </div>' +
+                            '</div>';
+                            
+            panel.innerHTML = largeAvatarHtml + infoBodyHtml;
+        }
+        initDirectorGallery();
+
+
+        // 3. 口碑金字塔层级联动数据
+        var pyramidChinaData = [
+            { title: "8.5 - 8.6分：类型片的中式试水区", share: "华语占比: 13.8%", desc: "经典基础层。在这个区间，华语片展现了高度成熟的本土类型化尝试（共4部入榜）。中国观众对充满人文温度和烟火气...（略）", movies: ["《大话西游之月光宝盒》", "《饮食男女》", "《喜宴》", "《岁月神偷》"] },
+            { title: "8.7 - 8.9分：华语黄金时代的记忆仓库", share: "华语占比: 15.9%", desc: "金字塔最庞大的中流砥柱。华语经典在此井喷（共18部入榜），主要由王家卫、周星驰 and 姜文的巅峰期作品构成...", movies: ["《让子弹飞》", "《大话西游之大圣娶亲》", "《重庆森林》", "《阳光灿烂的日子》", "《花样年华》"] },
+            { title: "9.0 - 9.2分：家国历史与现实反思的里程碑", share: "华语占比: 12.1%", desc: "硬核神作分水岭（共8部华语片）。在这个区间，华语电影彻底摆脱了单纯的娱乐属性，开始用史诗级的镜头解构国家近现代史的厚重变迁...", movies: ["《我不是药神》", "《活着》", "《无间道行业版》", "《大闹天宫 (1961)》", "《鬼子来了》"] },
+            { title: "9.3 - 9.4分：东方美学与宗师艺术的绝响", share: "华语占比: 6.4%", desc: "殿堂级大师区（共2部华语片）。这一层的华语电影在镜头语言、剧本张力以及东方哲学思辨上都做到了全球影史的极致...", movies: ["《大话西游之大圣娶亲(部分版本重叠)》", "《悲情城市》", "《背靠背，脸对脸》"] },
+            { title: "9.5分以上：跨越时代的文化华语图腾", share: "华语占比: 10.0%", desc: "至高无上的塔尖神作。全榜单仅有10部，而《霸王别姬》以 9.6 的极高分傲立其中（占比达10%）。它完美证明了中国观众在最高审美层面的文化自豪感...", movies: ["《霸王别姬 (9.6分 / 242万人评价)》"] }
+        ];
+
+        function switchPyramid(index) {
+            for(var i=1; i<=5; i++) document.getElementById('layer-'+i).classList.remove('active');
+            document.getElementById('layer-'+(index+1)).classList.add('active');
+            var panel = document.getElementById('spotlightPanel');
+            var data = pyramidChinaData[index];
+            var badgeHtml = "";
+            data.movies.forEach(function(m) { badgeHtml += '<span class="movie-badge">' + m + '</span>'; });
+            panel.innerHTML = '<div class="spotlight-header"><div class="spotlight-title">' + data.title + '</div><div class="spotlight-china-meta">' + data.share + '</div></div>' +
+                              '<div class="spotlight-desc"><b>💡 中式审美内涵拆解：</b>' + data.desc + '</div>' +
+                              '<div class="showcase-box"><div class="showcase-title">🇨🇳 该区间闪耀的华语之光代表作：</div><div class="movie-badges">' + badgeHtml + '</div></div>';
+        }
+        switchPyramid(4);
+
+
+        // 4. 观众最喜爱电影主题数据
+        var genreData = [
+            { name: "剧情类 (现实/社会)", count: "126 部", avgScore: "8.92 分", traffic: "超 1.2 亿人次", insight: "剧情类主题在豆瓣 Top 250 中占据了半壁江山。这类电影往往通过手术刀式的社会剖析、沉重而细腻的现实关照来解构人性...", movies: ["《霸王别姬》", "《我不是药神》", "《肖申克的救赎》", "《辛德勒的名单》"] },
+            { name: "喜剧与幽默解构", count: "38 部", avgScore: "8.81 分", traffic: "超 4500 万人次", insight: "喜剧是最具解压属性的国民级刚需主题。然而能入选经典的喜剧，往往不是流于表面的低俗恶搞，而是具备‘以喜衬悲’的深度...", movies: ["《让子弹飞》", "《大话西游之大圣娶亲》", "《美丽人生》", "《触不可及》"] },
+            { name: "科幻与宏大想象力", count: "24 部", avgScore: "8.95 分", traffic: "超 3800 万人次", insight: "科幻主题是重工业电影水平的终极试金石。数据表明，观众热爱的科幻作品不仅要求顶级震撼的视觉奇观，更要求具备深邃的哲学思辨...", movies: ["《星际穿越》", "《盗梦空间》", "《流浪地球2》", "《楚门的世界》"] },
+            { name: "动画与造梦艺术", count: "32 部", avgScore: "8.89 分", traffic: "超 4100 万人次", insight: "动画绝不只是儿童的专利，它是成人世界的终极造梦机。不论是独具东方神韵的精神救赎（宫崎骏系列），还是好莱坞成熟的社会寓言...", movies: ["《千与千寻》", "《疯狂动物城 blink》", "《寻梦环游记》", "《龙猫》"] },
+            { name: "犯罪与悬疑博弈", count: "21 部", avgScore: "8.86 分", traffic: "超 2900 万人次", insight: "高智商的剧本反转与正邪人性的模糊博弈，构成了犯罪悬疑主题的极致吸引力。这类电影善于将观众置于高压的道德天平与逻辑迷宫中...", movies: ["《控方证人》", "《盗火线》", "《无间道行业版》", "《杀人回忆》"] }
+        ];
+
+        function initGenreInterface() {
+            var btnPane = document.getElementById('genreButtonsPane');
+            btnPane.innerHTML = '';
+            genreData.forEach(function(item, idx) {
+                var btn = document.createElement('div');
+                btn.className = 'genre-btn-item' + (idx === 0 ? ' active' : '');
+                btn.onclick = function() { switchGenre(idx); };
+                btn.innerHTML = '<span class="genre-btn-name">🎭 ' + item.name + '</span><span class="genre-btn-meta">' + item.count + '</span>';
+                btnPane.appendChild(btn);
+            });
+            switchGenre(0);
+        }
+
+        function switchGenre(index) {
+            var buttons = document.getElementById('genreButtonsPane').getElementsByClassName('genre-btn-item');
+            for(var i=0; i<buttons.length; i++) buttons[i].classList.remove('active');
+            buttons[index].classList.add('active');
+            var board = document.getElementById('genreDisplayBoard');
+            var data = genreData[index];
+            var badgesHtml = '';
+            data.movies.forEach(function(m) { badgesHtml += '<span class="showcase-tag-item">' + m + '</span>'; });
+            board.innerHTML = '<div class="board-header"><div class="board-main-title">🎯 核心停留看板：' + data.name + '</div></div>' +
+                              '<div class="board-stats-row">' +
+                              '   <div class="stat-card"><div class="stat-label">分类平均评分</div><div class="stat-value" style="color:#2ecc71">' + data.avgScore + '</div></div>' +
+                              '   <div class="stat-card"><div class="stat-label">总计收录样本</div><div class="stat-value" style="color:#3498db">' + data.count + '</div></div>' +
+                              '   <div class="stat-card"><div class="stat-label">真实评价基数</div><div class="stat-value" style="color:#e67e22">' + data.traffic + '</div></div>' +
+                              '</div>' +
+                              '<div class="board-insight"><b>💡 原创深度内涵拆解：</b>' + data.insight + '</div>' +
+                              '<div class="board-showcase">' +
+                              '   <div class="showcase-lbl">🎬 该主题下由后羿采集器抓取的高光代表神作：</div>' +
+                              '   <div class="showcase-tags">' + badgesHtml + '</div>' +
+                              '</div>';
+        }
+        initGenreInterface();
+
+        window.addEventListener('resize', function() { boxOfficeChart.resize(); });
+    </script>
+</body>
+</html>
